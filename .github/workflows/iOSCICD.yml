@@ -1,22 +1,54 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
-name: Swift
+name: iOS CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build:
-
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set Up Xcode
+      run: |
+        sudo xcode-select -switch /Applications/Xcode.app
+        xcodebuild -version  # Ensure Xcode is installed correctly
+
+    - name: Verify Files & Directories
+      run: ls -R
+
+    - name: Install CocoaPods (If Needed)
+      run: |
+        cd MyProjectManagementSystem
+        if [ -f "Podfile" ]; then
+          pod install --repo-update
+        else
+          echo "No Podfile found, skipping pod install."
+        fi
+
+    - name: Build Project
+      run: |
+        cd MyProjectManagementSystem || exit 1
+        xcodebuild \
+          -workspace MyProjectManagementSystem.xcworkspace \
+          -scheme "MyProjectManagementSystem" \
+          -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' \
+          clean build | xcpretty
+      env:
+        DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+
+    - name: Run Tests
+      run: |
+        cd MyProjectManagementSystem || exit 1
+        xcodebuild \
+          -workspace MyProjectManagementSystem.xcworkspace \
+          -scheme "MyProjectManagementSystem" \
+          -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' \
+          test | xcpretty
