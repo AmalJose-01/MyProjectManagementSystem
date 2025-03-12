@@ -9,7 +9,8 @@ import SwiftUI
 
 struct TaskListView: View {
     
-    @StateObject var viewModel: TaskViewModel = TaskViewModel(dataSource: .shared)
+    @StateObject var viewModel: TaskViewModel = TaskViewModel(dataSource: ItemDataSource.shared)
+
     @State private var taskList: [TaskModel] = []
     @State private var errorMessage: String?
     

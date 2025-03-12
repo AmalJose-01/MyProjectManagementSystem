@@ -10,17 +10,31 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-@MainActor
+
+
+//class TaskViewModel {
+//    private var dataSource: ItemDataSourceProtocol
+//
+//    init(dataSource: ItemDataSourceProtocol) {
+//        self.dataSource = dataSource
+//    }
+//
+//    // Your other code here
+//}
+
+
+
+
 class TaskViewModel: ObservableObject {
     @Published var tasks: [TaskModel] = []
     @Published var filterStatus: TaskStatus? = nil
     @Published var sortOption: SortOption = .priority
 
-      private let dataSource: ItemDataSource
+      private let dataSource: ItemDataSourceProtocol
 
    
     
-    init(dataSource: ItemDataSource) {
+    init(dataSource: ItemDataSourceProtocol) {
         self.dataSource = dataSource
     }
     
@@ -29,6 +43,7 @@ class TaskViewModel: ObservableObject {
         self.tasks = self.dataSource.fetchItems() // No need for DispatchQueue.main.async inside @MainActor
         return self.tasks
     }
+    
     
     func deleteTask(_ task: TaskModel) {
            dataSource.deleteTask(task)
