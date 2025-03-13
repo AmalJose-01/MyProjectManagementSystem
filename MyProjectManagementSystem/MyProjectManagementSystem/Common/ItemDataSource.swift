@@ -53,7 +53,13 @@ class ItemDataSource: ItemDataSourceProtocol {
     }
     
     func deleteTask(_ task: TaskModel) {
-        // Implement deletion logic here
+        modelContext.delete(task)
+            do {
+                try modelContext.save()
+                print("Task deleted successfully!")
+            } catch {
+                print("Failed to delete task: \(error.localizedDescription)")
+            }
     }
 }
 

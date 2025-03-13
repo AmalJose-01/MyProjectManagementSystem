@@ -1,16 +1,8 @@
-//
-//  TaskListView.swift
-//  MyProjectManagementSystem
-//
-//  Created by Amal Jose on 12/3/2025.
-//
-
 import SwiftUI
 
 struct TaskListView: View {
     
     @StateObject var viewModel: TaskViewModel = TaskViewModel(dataSource: ItemDataSource.shared)
-
     @State private var taskList: [TaskModel] = []
     @State private var errorMessage: String?
     
@@ -70,19 +62,22 @@ struct TaskListView: View {
                 .padding(.horizontal)
                 .onChange(of: sortOption) { _ in updateTaskList() }
                 
-                // Scrollable LazyVStack for better performance
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(sortedTasks, id: \.id) { task in
-                            NavigationLink(destination: TaskDetailView(task: Binding.constant(task), onDelete: {
+                // Task List with Swipe Actions
+                List {
+                    ForEach(sortedTasks, id: \.id) { task in
+                        NavigationLink(destination: TaskDetailView(task: Binding.constant(task), onDelete: {
+                            deleteTask(task)
+                        })) {
+                            TaskRowView(task: task)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
                                 deleteTask(task)
-                            })) {
-                                TaskRowView(task: task)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
                 }
                 .refreshable {
                     await fetchTasksData()
@@ -117,12 +112,12 @@ struct TaskListView: View {
                     await fetchTasksData()
                 }
             }
-            .background(Color(UIColor.systemBackground)) // Supports dark & light mode
-            .foregroundColor(Color.primary) // Adjust text color for contrast
+            .background(Color(UIColor.systemBackground))
+            .foregroundColor(Color.primary)
         }
     }
     
-    // MARK: - Task Row View (for cleaner structure)
+    // MARK: - Task Row View
     private struct TaskRowView: View {
         let task: TaskModel
         
