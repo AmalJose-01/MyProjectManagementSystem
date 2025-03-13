@@ -12,17 +12,6 @@ import SwiftData
 
 
 
-//class TaskViewModel {
-//    private var dataSource: ItemDataSourceProtocol
-//
-//    init(dataSource: ItemDataSourceProtocol) {
-//        self.dataSource = dataSource
-//    }
-//
-//    // Your other code here
-//}
-
-
 
 
 class TaskViewModel: ObservableObject {

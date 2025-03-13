@@ -10,13 +10,14 @@ struct TaskListView: View {
     @State private var sortOption: String = "Due Date"
     
     @State private var showingAddTaskView = false
-    
     @State private var showingDeleteAlert = false
     @State private var taskToDelete: TaskModel?
     
     @EnvironmentObject var themeManager: ThemeManager
     
-    // MARK: - Filter Tasks
+    @State private var isNavigatingToAddTask = false // Controls navigation
+
+    
     var filteredTasks: [TaskModel] {
         taskList.filter { task in
             switch filterStatus {
@@ -30,28 +31,22 @@ struct TaskListView: View {
         }
     }
     
-    // MARK: - Sort Tasks
     var sortedTasks: [TaskModel] {
-        let filtered = filteredTasks // Step 1: Apply filtering
-        let sorted: [TaskModel]
-        
+        let filtered = filteredTasks
         switch sortOption {
         case "Priority":
-            sorted = filtered.sorted { priorityValue($0.priority) < priorityValue($1.priority) }
+            return filtered.sorted { priorityValue($0.priority) < priorityValue($1.priority) }
         case "Alphabetical":
-            sorted = filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            return filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         default:
-            sorted = filtered.sorted { $0.dueDate < $1.dueDate }
+            return filtered.sorted { $0.dueDate < $1.dueDate }
         }
-        
-        return sorted
     }
     
     var body: some View {
         NavigationStack {
             VStack {
                 
-                // Status Filter
                 Picker("Status", selection: $filterStatus) {
                     Text("All").tag("All")
                     Text("Completed").tag("Completed")
@@ -61,7 +56,6 @@ struct TaskListView: View {
                 .padding(.horizontal)
                 .onChange(of: filterStatus) { _ in updateTaskList() }
                 
-                // Sorting Options
                 HStack {
                     Text("Sort by:")
                         .font(.subheadline)
@@ -77,31 +71,32 @@ struct TaskListView: View {
                 .padding(.horizontal)
                 .onChange(of: sortOption) { _ in updateTaskList() }
                 
-                // Task List with Swipe Actions
-                List {
-                    ForEach(sortedTasks) { task in
-                        NavigationLink(destination: TaskDetailView(task: Binding.constant(task))) {
-                            TaskRowView(task: task)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                taskToDelete = task
-                                showingDeleteAlert = true
-                                
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                if sortedTasks.isEmpty {
+                    EmptyStateView(action: { showingAddTaskView = true })
+                        .frame(maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(sortedTasks) { task in
+                            NavigationLink(destination: TaskDetailView(task: Binding.constant(task))) {
+                                TaskRowView(task: task)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    taskToDelete = task
+                                    showingDeleteAlert = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                     }
-                }
-                .refreshable {
-                    await fetchTasksData()
+                    .refreshable {
+                        await fetchTasksData()
+                    }
                 }
                 
-                // Add Task Button
-                Button(action: {
-                    showingAddTaskView = true
-                }) {
+                // Use NavigationLink instead of sheet
+                NavigationLink(destination: AddTaskView(), isActive: $isNavigatingToAddTask) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -117,17 +112,12 @@ struct TaskListView: View {
                     .shadow(radius: 5)
                 }
                 .padding()
-                .sheet(isPresented: $showingAddTaskView) {
-                    AddTaskView()
-                }
             }
             .navigationTitle("Task Manager")
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 await fetchTasksData()
             }
-            .background(Color(UIColor.systemBackground))
-            .foregroundColor(Color.primary)
             .alert("Delete Task", isPresented: $showingDeleteAlert, presenting: taskToDelete) { task in
                 Button("Cancel", role: .cancel) { }
                 Button("Delete", role: .destructive) {
@@ -139,12 +129,10 @@ struct TaskListView: View {
         }
     }
     
-    // MARK: - Update UI When Sorting/Filtering Changes
     private func updateTaskList() {
-        taskList = viewModel.tasks // ✅ Correctly updates the task list
+        taskList = viewModel.tasks
     }
     
-    // MARK: - Fetch Data Asynchronously
     private func fetchTasksData() async {
         do {
             taskList = await viewModel.getTasks()
@@ -154,35 +142,21 @@ struct TaskListView: View {
         }
     }
     
-    // MARK: - Delete Task
-    //    private func deleteTask(_ task: TaskModel) {
-    //        taskList.removeAll { $0.id == task.id }
-    //        viewModel.deleteTask(task)
-    //        updateTaskList()
-    //    }
-    
     private func deleteTask(_ task: TaskModel) {
         if viewModel.deleteTask(task) {
             taskList.removeAll { $0.id == task.id }
-            updateTaskList()
+//            updateTaskList()
         } else {
             errorMessage = "Failed to delete task."
         }
     }
     
-    
-    
-    // MARK: - Priority Value Converter
     private func priorityValue(_ priority: String) -> Int {
         switch priority {
-        case "High":
-            return 1
-        case "Medium":
-            return 2
-        case "Low":
-            return 3
-        default:
-            return 4
+        case "High": return 1
+        case "Medium": return 2
+        case "Low": return 3
+        default: return 4
         }
     }
 }

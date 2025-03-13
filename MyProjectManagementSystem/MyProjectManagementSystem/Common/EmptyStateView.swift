@@ -32,18 +32,7 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)
             
-            // Add Task Button
-            Button(action: action) {
-                Label("Add a Task", systemImage: "plus.circle.fill")
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(LinearGradient(colors: [Color.blue, Color.purple], startPoint: .leading, endPoint: .trailing))
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .shadow(radius: 5)
-            }
-            .padding(.horizontal, 50)
+ 
         }
         .padding()
     }
