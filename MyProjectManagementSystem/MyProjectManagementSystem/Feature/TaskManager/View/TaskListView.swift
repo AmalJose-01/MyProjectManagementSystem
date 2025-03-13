@@ -11,25 +11,40 @@ struct TaskListView: View {
     
     @State private var showingAddTaskView = false
     
+    @State private var showingDeleteAlert = false
+    @State private var taskToDelete: TaskModel?
+    
     @EnvironmentObject var themeManager: ThemeManager
     
+    // MARK: - Filter Tasks
     var filteredTasks: [TaskModel] {
         taskList.filter { task in
-            filterStatus == "All" || (filterStatus == "Completed" && task.isCompleted) || (filterStatus == "Pending" && !task.isCompleted)
+            switch filterStatus {
+            case "Completed":
+                return task.isCompleted
+            case "Pending":
+                return !task.isCompleted
+            default:
+                return true
+            }
         }
     }
     
+    // MARK: - Sort Tasks
     var sortedTasks: [TaskModel] {
-        filteredTasks.sorted {
-            switch sortOption {
-            case "Priority":
-                return priorityValue($0.priority) < priorityValue($1.priority)
-            case "Alphabetical":
-                return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-            default:
-                return $0.dueDate < $1.dueDate
-            }
+        let filtered = filteredTasks // Step 1: Apply filtering
+        let sorted: [TaskModel]
+        
+        switch sortOption {
+        case "Priority":
+            sorted = filtered.sorted { priorityValue($0.priority) < priorityValue($1.priority) }
+        case "Alphabetical":
+            sorted = filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        default:
+            sorted = filtered.sorted { $0.dueDate < $1.dueDate }
         }
+        
+        return sorted
     }
     
     var body: some View {
@@ -64,15 +79,15 @@ struct TaskListView: View {
                 
                 // Task List with Swipe Actions
                 List {
-                    ForEach(sortedTasks, id: \.id) { task in
-                        NavigationLink(destination: TaskDetailView(task: Binding.constant(task), onDelete: {
-                            deleteTask(task)
-                        })) {
+                    ForEach(sortedTasks) { task in
+                        NavigationLink(destination: TaskDetailView(task: Binding.constant(task))) {
                             TaskRowView(task: task)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                deleteTask(task)
+                                taskToDelete = task
+                                showingDeleteAlert = true
+                                
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -107,67 +122,32 @@ struct TaskListView: View {
                 }
             }
             .navigationTitle("Task Manager")
-            .onAppear {
-                Task {
-                    await fetchTasksData()
-                }
+            .navigationBarTitleDisplayMode(.inline)
+            .task {
+                await fetchTasksData()
             }
             .background(Color(UIColor.systemBackground))
             .foregroundColor(Color.primary)
-        }
-    }
-    
-    // MARK: - Task Row View
-    private struct TaskRowView: View {
-        let task: TaskModel
-        
-        var body: some View {
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(task.isCompleted ? Color.green : Color.gray)
-                    .frame(width: 12, height: 12)
-                
-                VStack(alignment: .leading) {
-                    Text(task.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    if let desc = task.desc {
-                        Text(desc)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    
-                    HStack {
-                        Text("Priority: \(task.priority)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Spacer()
-                        
-                        Text(task.dueDate, style: .date)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+            .alert("Delete Task", isPresented: $showingDeleteAlert, presenting: taskToDelete) { task in
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    deleteTask(task)
                 }
+            } message: { _ in
+                Text("Are you sure you want to delete this task?")
             }
-            .padding()
-            .background(Color(UIColor.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .shadow(radius: 1)
         }
     }
     
     // MARK: - Update UI When Sorting/Filtering Changes
     private func updateTaskList() {
-        taskList = taskList // ✅ Triggers SwiftUI to refresh the view
+        taskList = viewModel.tasks // ✅ Correctly updates the task list
     }
     
     // MARK: - Fetch Data Asynchronously
     private func fetchTasksData() async {
         do {
-            taskList = await viewModel.getPlayers()
+            taskList = await viewModel.getTasks()
         } catch {
             errorMessage = "Failed to fetch task data: \(error.localizedDescription)"
             print(error)
@@ -175,11 +155,22 @@ struct TaskListView: View {
     }
     
     // MARK: - Delete Task
+    //    private func deleteTask(_ task: TaskModel) {
+    //        taskList.removeAll { $0.id == task.id }
+    //        viewModel.deleteTask(task)
+    //        updateTaskList()
+    //    }
+    
     private func deleteTask(_ task: TaskModel) {
-        taskList.removeAll { $0.id == task.id }
-        viewModel.deleteTask(task)
-        updateTaskList()
+        if viewModel.deleteTask(task) {
+            taskList.removeAll { $0.id == task.id }
+            updateTaskList()
+        } else {
+            errorMessage = "Failed to delete task."
+        }
     }
+    
+    
     
     // MARK: - Priority Value Converter
     private func priorityValue(_ priority: String) -> Int {

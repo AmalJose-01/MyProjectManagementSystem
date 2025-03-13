@@ -39,15 +39,28 @@ class TaskViewModel: ObservableObject {
     }
     
     @MainActor
-    func getPlayers() async -> [TaskModel] {
+    func getTasks() async -> [TaskModel] {
         self.tasks = self.dataSource.fetchItems() // No need for DispatchQueue.main.async inside @MainActor
         return self.tasks
     }
     
     
-    func deleteTask(_ task: TaskModel) {
-           dataSource.deleteTask(task)
+//    func deleteTask(_ task: TaskModel) {
+//           dataSource.deleteTask(task)
+//       }
+    
+    func deleteTask(_ task: TaskModel) -> Bool {
+           let success = dataSource.deleteTask(task)
+           
+           if success {
+               return success
+           } else {
+               print("Failed to delete task.")
+               return success
+           }
        }
+    
+    
    
 }
 

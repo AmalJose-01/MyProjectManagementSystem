@@ -9,7 +9,8 @@ import SwiftUI
 
 struct TaskDetailView: View {
     @Binding var task: TaskModel // Binding to modify the task
-    var onDelete: () -> Void // Callback to delete task
+    @StateObject var viewModel: TaskViewModel = TaskViewModel(dataSource: ItemDataSource.shared)
+
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -32,7 +33,7 @@ struct TaskDetailView: View {
             Spacer()
             
             Button(role: .destructive) {
-                onDelete()
+                deleteTask(task)
             } label: {
                 Label("Delete Task", systemImage: "trash")
                     .foregroundColor(.red)
@@ -41,6 +42,13 @@ struct TaskDetailView: View {
         }
         .padding()
         .navigationTitle("Task Details")
+        .navigationBarTitleDisplayMode(.inline)
     }
+    
+    
+    private func deleteTask(_ task: TaskModel) {
+        viewModel.deleteTask(task)
+    }
+    
 }
 

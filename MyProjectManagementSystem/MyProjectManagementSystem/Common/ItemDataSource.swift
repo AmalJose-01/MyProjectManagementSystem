@@ -13,7 +13,7 @@ import Foundation
 protocol ItemDataSourceProtocol {
     func saveMemberDetail(memberDetail: TaskModel) -> Bool
     func fetchItems() -> [TaskModel]
-    func deleteTask(_ task: TaskModel)
+    func deleteTask(_ task: TaskModel) -> Bool
 }
 
 class ItemDataSource: ItemDataSourceProtocol {
@@ -52,13 +52,15 @@ class ItemDataSource: ItemDataSourceProtocol {
         }
     }
     
-    func deleteTask(_ task: TaskModel) {
+    func deleteTask(_ task: TaskModel) -> Bool{
         modelContext.delete(task)
             do {
                 try modelContext.save()
                 print("Task deleted successfully!")
+                return true
             } catch {
                 print("Failed to delete task: \(error.localizedDescription)")
+                return false
             }
     }
 }

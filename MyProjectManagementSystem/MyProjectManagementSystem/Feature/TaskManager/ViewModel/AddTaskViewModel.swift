@@ -18,7 +18,7 @@ final class AddTaskViewModel: ObservableObject{
     func saveMemberDetail(taskDetail: TaskModel) -> Bool {
         let response = dataSource.saveMemberDetail(memberDetail: taskDetail)
         if response {
-            Task { await TaskViewModel(dataSource: dataSource).getPlayers() } // Refresh task list
+            Task { await TaskViewModel(dataSource: dataSource).getTasks() } // Refresh task list
         }
         return response
     }

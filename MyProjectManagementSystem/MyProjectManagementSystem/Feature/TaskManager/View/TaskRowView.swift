@@ -8,13 +8,8 @@ import SwiftUI
 
 
 
- struct TaskRowView: View {
+struct TaskRowView: View {
     let task: TaskModel
-    let onDelete: () -> Void
-    let onComplete: () -> Void
-    
-    @State private var showUndoSnackbar = false
-    @State private var recentlyDeletedTask: TaskModel?
     
     var body: some View {
         HStack(spacing: 12) {
@@ -51,54 +46,7 @@ import SwiftUI
         .background(Color(UIColor.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .shadow(radius: 1)
-        .swipeActions(edge: .trailing) {
-            Button(role: .destructive) {
-                recentlyDeletedTask = task
-                onDelete()
-                showUndoSnackbar = true
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .tint(.red)
-        }
-        .swipeActions(edge: .leading) {
-            Button {
-                onComplete()
-            } label: {
-                Label(task.isCompleted ? "Unmark" : "Complete", systemImage: task.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle")
-            }
-            .tint(.green)
-        }
-        .overlay(
-            Group {
-                if showUndoSnackbar {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Text("Task deleted").foregroundColor(.white)
-                            Button("Undo") {
-                                if let task = recentlyDeletedTask {
-                                    onDelete()  // Restore the deleted task
-                                    showUndoSnackbar = false
-                                }
-                            }
-                            .foregroundColor(.yellow)
-                        }
-                        .padding()
-                        .background(Color.black.opacity(0.8))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .transition(.move(edge: .bottom))
-                    }
-                    .padding()
-                } else {
-                    EmptyView()
-                }
-            }
-        )
-
     }
 }
-
-
 
 
